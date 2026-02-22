@@ -2,7 +2,7 @@ import requests
 import time
 
 # 🔐 PUT YOUR NEW TOKEN HERE (regenerate from BotFather if needed)
-TOKEN = "YOUR_NEW_TOKEN_HERE"
+TOKEN = "8363573696:AAGXpD4T4OuNu93Z98OrTL8G3z6KM-vDsxY"
 
 # Your channel / group chat id (must start with -100 for channels)
 CHAT_ID = "-1002013620572"
