@@ -1,7 +1,8 @@
 import requests
 import time
+import random
 
-# 🔐 ADD YOUR 6 BOT TOKENS HERE
+# 🔐 Your 6 bot tokens (NO empty ones)
 TOKENS = [
     "8363573696:AAGXpD4T4OuNu93Z98OrTL8G3z6KM-vDsxY",  
     "8578327028:AAHdKRpxMXstzhNssPWEhkkDN9Ikdl4GPxM",  
@@ -13,9 +14,12 @@ TOKENS = [
 
 CHAT_ID = "-1002013620572"
 
-print("6-REACTION BOT STARTED")
+print("SMART REACTION BOT STARTED")
 
 last_update_id = None
+
+# Pool for the 3 random reactions
+RANDOM_POOL = ["❤️", "😭", "🙏", "🔥", "👍", "⚡", "👀", "💯"]
 
 
 def react(token, message_id, emoji):
@@ -34,41 +38,57 @@ def react(token, message_id, emoji):
         print("Reaction error:", e)
 
 
-def react_all(message_id):
+def build_reaction_pattern():
     """
-    Desired reaction result:
-    🤣 🤣 🤣 🤣 😭 🙏
+    Always:
+    3 🤣 + 3 random emojis
+    Then shuffle so order looks natural.
     """
+    reactions = ["🤣", "🤣", "🤣"]
 
-    emojis = ["🤣", "🤣", "🤣", "🤣", "😭", "🙏"]
+    # pick 3 random unique emojis
+    reactions += random.sample(RANDOM_POOL, 3)
+
+    # shuffle order so bots don't look patterned
+    random.shuffle(reactions)
+
+    return reactions
+
+
+def react_all(message_id):
+    emojis = build_reaction_pattern()
 
     for token, emoji in zip(TOKENS, emojis):
-        time.sleep(2)  # IMPORTANT anti-spam delay
+        time.sleep(random.uniform(1.5, 2.4))  # human-like delay
         react(token, message_id, emoji)
 
 
 while True:
     try:
-        # Only first bot listens for updates
+        # ✅ Use offset so old posts are NEVER processed again
         url = f"https://api.telegram.org/bot{TOKENS[0]}/getUpdates"
-        response = requests.get(url, timeout=20).json()
+
+        params = {}
+        if last_update_id is not None:
+            params["offset"] = last_update_id + 1
+
+        response = requests.get(url, params=params, timeout=20).json()
 
         if response.get("result"):
             for update in response["result"]:
-                if update["update_id"] != last_update_id:
-                    last_update_id = update["update_id"]
+                last_update_id = update["update_id"]
 
-                    if "channel_post" in update:
-                        msg = update["channel_post"]
-                    elif "message" in update:
-                        msg = update["message"]
-                    else:
-                        continue
+                if "channel_post" in update:
+                    msg = update["channel_post"]
+                elif "message" in update:
+                    msg = update["message"]
+                else:
+                    continue
 
-                    message_id = msg["message_id"]
-                    print("New post detected →", message_id)
+                message_id = msg["message_id"]
+                print("New post detected →", message_id)
 
-                    react_all(message_id)
+                react_all(message_id)
 
         time.sleep(2)
 
