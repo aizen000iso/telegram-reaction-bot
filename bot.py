@@ -1,27 +1,23 @@
 import requests
 import time
 
-# 🔐 PUT YOUR NEW TOKEN HERE (regenerate from BotFather if needed)
+# 🔐 Put your REAL bot token here
 TOKEN = "8363573696:AAGXpD4T4OuNu93Z98OrTL8G3z6KM-vDsxY"
 
-# Your channel / group chat id (must start with -100 for channels)
+# Your channel ID (must start with -100)
 CHAT_ID = "-1002013620572"
 
 print("BOT STARTED SUCCESSFULLY")
 
-# ✅ Keep only a few emojis — Telegram allows limited reactions per bot
-EMOJIS = ["🤣", "😭", "❤️"]
-
 last_update_id = None
 
 
-def react_multiple(message_id):
+def react_single(message_id):
     """
-    Sends all reactions in ONE request (Telegram requirement)
-    Includes delay to avoid spam detection.
+    React to a message with ONE emoji (Telegram-safe).
     """
 
-    # ⏱ Human-like delay (prevents Telegram anti-spam block)
+    # Small delay so Telegram doesn't flag as spam
     time.sleep(1.5)
 
     url = f"https://api.telegram.org/bot{TOKEN}/setMessageReaction"
@@ -29,7 +25,12 @@ def react_multiple(message_id):
     payload = {
         "chat_id": CHAT_ID,
         "message_id": message_id,
-        "reaction": [{"type": "emoji", "emoji": e} for e in EMOJIS]
+        "reaction": [
+            {
+                "type": "emoji",
+                "emoji": "🤣"
+            }
+        ]
     }
 
     try:
@@ -41,12 +42,12 @@ def react_multiple(message_id):
 
 while True:
     try:
-        # Get new updates
+        # Get new updates from Telegram
         url = f"https://api.telegram.org/bot{TOKEN}/getUpdates"
-        r = requests.get(url, timeout=20).json()
+        response = requests.get(url, timeout=20).json()
 
-        if r.get("result"):
-            for update in r["result"]:
+        if response.get("result"):
+            for update in response["result"]:
                 if update["update_id"] != last_update_id:
                     last_update_id = update["update_id"]
 
@@ -61,9 +62,9 @@ while True:
                     message_id = msg["message_id"]
                     print("New post detected →", message_id)
 
-                    react_multiple(message_id)
+                    react_single(message_id)
 
-        # Poll every 2 seconds (safe interval)
+        # Check every 2 seconds
         time.sleep(2)
 
     except Exception as e:
