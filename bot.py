@@ -1,7 +1,6 @@
 import requests
 import time
 import random
-import os
 
 TOKENS = [
     "8363573696:AAGXpD4T4OuNu93Z98OrTL8G3z6KM-vDsxY",  
@@ -14,30 +13,13 @@ TOKENS = [
 
 CHAT_ID = "-1002013620572"
 
-print("PERSISTENT REACTION BOT STARTED")
+print("LIVE REACTION BOT STARTED")
 
 RANDOM_POOL = ["❤️", "😭", "🙏", "🔥", "👍", "⚡", "👀", "💯"]
 
-STATE_FILE = "last_update.txt"
+last_update_id = None
 
 
-# ------------------ LOAD LAST UPDATE ------------------ #
-def load_last_update():
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, "r") as f:
-            return int(f.read().strip())
-    return None
-
-
-def save_last_update(update_id):
-    with open(STATE_FILE, "w") as f:
-        f.write(str(update_id))
-
-
-last_update_id = load_last_update()
-
-
-# ------------------ REACTION ------------------ #
 def react(token, message_id, emoji):
     url = f"https://api.telegram.org/bot{token}/setMessageReaction"
 
@@ -65,25 +47,25 @@ def react_all(message_id):
     emojis = build_pattern()
 
     for token, emoji in zip(TOKENS, emojis):
-        time.sleep(random.uniform(1.5, 2.5))
+        time.sleep(random.uniform(1.5, 2.4))
         react(token, message_id, emoji)
 
 
-# ------------------ MAIN LOOP ------------------ #
+# ---- MAIN LOOP ----
 while True:
     try:
         url = f"https://api.telegram.org/bot{TOKENS[0]}/getUpdates"
 
-        params = {"timeout": 20}
-        if last_update_id:
-            params["offset"] = last_update_id + 1
+        params = {
+            "timeout": 25,
+            "offset": last_update_id + 1 if last_update_id else None
+        }
 
-        response = requests.get(url, params=params, timeout=25).json()
+        response = requests.get(url, params=params, timeout=30).json()
 
         if response.get("result"):
             for update in response["result"]:
                 last_update_id = update["update_id"]
-                save_last_update(last_update_id)  # 🔥 remember forever
 
                 if "channel_post" in update:
                     msg = update["channel_post"]
@@ -100,5 +82,5 @@ while True:
         time.sleep(2)
 
     except Exception as e:
-        print("Main loop error:", e)
+        print("Loop error:", e)
         time.sleep(5)
