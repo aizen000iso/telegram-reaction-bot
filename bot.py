@@ -1,8 +1,8 @@
 import requests
 import time
 import random
+import os
 
-# 🔐 Your 6 bot tokens (NO empty ones)
 TOKENS = [
     "8363573696:AAGXpD4T4OuNu93Z98OrTL8G3z6KM-vDsxY",  
     "8578327028:AAHdKRpxMXstzhNssPWEhkkDN9Ikdl4GPxM",  
@@ -14,14 +14,30 @@ TOKENS = [
 
 CHAT_ID = "-1002013620572"
 
-print("SMART REACTION BOT STARTED")
+print("PERSISTENT REACTION BOT STARTED")
 
-last_update_id = None
-
-# Pool for the 3 random reactions
 RANDOM_POOL = ["❤️", "😭", "🙏", "🔥", "👍", "⚡", "👀", "💯"]
 
+STATE_FILE = "last_update.txt"
 
+
+# ------------------ LOAD LAST UPDATE ------------------ #
+def load_last_update():
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r") as f:
+            return int(f.read().strip())
+    return None
+
+
+def save_last_update(update_id):
+    with open(STATE_FILE, "w") as f:
+        f.write(str(update_id))
+
+
+last_update_id = load_last_update()
+
+
+# ------------------ REACTION ------------------ #
 def react(token, message_id, emoji):
     url = f"https://api.telegram.org/bot{token}/setMessageReaction"
 
@@ -38,45 +54,36 @@ def react(token, message_id, emoji):
         print("Reaction error:", e)
 
 
-def build_reaction_pattern():
-    """
-    Always:
-    3 🤣 + 3 random emojis
-    Then shuffle so order looks natural.
-    """
+def build_pattern():
     reactions = ["🤣", "🤣", "🤣"]
-
-    # pick 3 random unique emojis
     reactions += random.sample(RANDOM_POOL, 3)
-
-    # shuffle order so bots don't look patterned
     random.shuffle(reactions)
-
     return reactions
 
 
 def react_all(message_id):
-    emojis = build_reaction_pattern()
+    emojis = build_pattern()
 
     for token, emoji in zip(TOKENS, emojis):
-        time.sleep(random.uniform(1.5, 2.4))  # human-like delay
+        time.sleep(random.uniform(1.5, 2.5))
         react(token, message_id, emoji)
 
 
+# ------------------ MAIN LOOP ------------------ #
 while True:
     try:
-        # ✅ Use offset so old posts are NEVER processed again
         url = f"https://api.telegram.org/bot{TOKENS[0]}/getUpdates"
 
-        params = {}
-        if last_update_id is not None:
+        params = {"timeout": 20}
+        if last_update_id:
             params["offset"] = last_update_id + 1
 
-        response = requests.get(url, params=params, timeout=20).json()
+        response = requests.get(url, params=params, timeout=25).json()
 
         if response.get("result"):
             for update in response["result"]:
                 last_update_id = update["update_id"]
+                save_last_update(last_update_id)  # 🔥 remember forever
 
                 if "channel_post" in update:
                     msg = update["channel_post"]
@@ -86,7 +93,7 @@ while True:
                     continue
 
                 message_id = msg["message_id"]
-                print("New post detected →", message_id)
+                print("NEW POST →", message_id)
 
                 react_all(message_id)
 
