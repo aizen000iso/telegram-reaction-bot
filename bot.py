@@ -19,63 +19,53 @@ CHAT_ID = "-1002013620572"
 print("HUMAN-LIKE REACTION BOT STARTED")
 
 # pool for the 5 random reactions
-RANDOM_POOL = ["❤️", "😭", "🙏", "🔥", "👍", "⚡", "👀", "💯"]
+EMOJI_POOL = ["❤️", "😭", "🙏"]
 
 last_update_id = None
 
-
 def react(token, message_id, emoji):
     url = f"https://api.telegram.org/bot{token}/setMessageReaction"
-
     payload = {
         "chat_id": CHAT_ID,
         "message_id": message_id,
         "reaction": [{"type": "emoji", "emoji": emoji}]
     }
-
     try:
         r = requests.post(url, json=payload, timeout=10)
         print(f"{emoji} sent:", r.text)
     except Exception as e:
         print("Reaction error:", e)
 
-
 def build_pattern():
     """
-    3 fixed 🤣 + 5 random emojis
+    3 fixed 🤣 + 5 random emojis from ❤️ 😭 🙏
     """
     reactions = ["🤣", "🤣", "🤣"]
-    reactions += random.sample(RANDOM_POOL, 5)
+    reactions += random.choices(EMOJI_POOL, k=5)
     random.shuffle(reactions)
     return reactions
 
-
 def react_slowly(message_id):
     emojis = build_pattern()
-
     for token, emoji in zip(TOKENS, emojis):
         print(f"Waiting 5 minutes before sending {emoji} ...")
         time.sleep(300)  # ⏱ 5 minutes between EACH reaction
         react(token, message_id, emoji)
-
 
 # ---- MAIN LOOP ----
 while True:
     try:
         # only FIRST bot checks for new posts
         url = f"https://api.telegram.org/bot{TOKENS[0]}/getUpdates"
-
         params = {
             "timeout": 25,
             "offset": last_update_id + 1 if last_update_id else None
         }
-
         response = requests.get(url, params=params, timeout=30).json()
 
         if response.get("result"):
             for update in response["result"]:
                 last_update_id = update["update_id"]
-
                 if "channel_post" in update:
                     msg = update["channel_post"]
                 elif "message" in update:
